@@ -60,6 +60,8 @@ public class AFN {
 			System.out.println(string);
 		}
 
+		this.crearArchivo(args);
+
 		if (args[1].equals("-afd")) {
 			AFD afd = new AFD(args);
 		}
@@ -90,6 +92,23 @@ public class AFN {
 				this.reglasProduccion.add(nrp);
 			}
 		}
+	}
+
+	private void crearArchivo(String[] args) throws IOException {
+		System.out.println(args[2]);
+		File file = new File(args[2]);
+		if (file.exists()) {
+			System.out.println("archivo existe");
+		} else {
+			System.out.println("archivo no existe");
+			
+			if (file.createNewFile()) {
+				System.out.println(file.getName() + " fue creado");
+			} else {
+				System.out.println("Yo creo que no se va apoder");
+			}
+		}
+		
 	}
 
 }
