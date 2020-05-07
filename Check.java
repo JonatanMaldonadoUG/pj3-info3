@@ -22,45 +22,58 @@ public class Check {
 	// }
 	// }
 
-	public Check(String[] args) {
+	public Check(String[] args) throws IOException {
 		System.out.println("----- Check -----");
 		// for (String value : args) {
 		// System.out.println(value);
 		// }
-		try {
-			FileInputStream fstreamEstados = new FileInputStream(args[0]);// lee archivo con estados
-			br = new BufferedReader(new InputStreamReader(fstreamEstados));
-			String lineaCheck;
-			int linea = 0;
+		FileInputStream fstreamEstados = new FileInputStream(args[0]);// lee archivo con estados
+		br = new BufferedReader(new InputStreamReader(fstreamEstados));
+		String lineaCheck;
+		int linea = 0;
 
-			while ((lineaCheck = br.readLine()) != null) {
-				if (linea == 0) { // conjunto de estados
-					String[] estadosa = lineaCheck.split(",");
-					estados = new LinkedList<String>(Arrays.asList(estadosa));
-				estados = new LinkedList<String>(Arrays.asList(estadosa)); 
-					estados = new LinkedList<String>(Arrays.asList(estadosa));
-				estados = new LinkedList<String>(Arrays.asList(estadosa)); 
-					estados = new LinkedList<String>(Arrays.asList(estadosa));
-				} else if (linea == 1) { // numero total de estados incluido el absorvente(total)
-					String[] totala = lineaCheck.split(",");
-					total = new LinkedList<String>(Arrays.asList(totala));
-				} else if (linea == 2) { // conjunto de estados finales
-					String[] finalesa = lineaCheck.split(",");
-					finales = new LinkedList<String>(Arrays.asList(finalesa));
-				} else { // transiciones de estados
+		while ((lineaCheck = br.readLine()) != null) {
+			if (linea == 0) { // conjunto de estados
+				String[] estadosa = lineaCheck.split(",");
+				estados = new LinkedList<String>(Arrays.asList(estadosa));
+				estados = new LinkedList<String>(Arrays.asList(estadosa));
+				estados = new LinkedList<String>(Arrays.asList(estadosa));
+				estados = new LinkedList<String>(Arrays.asList(estadosa));
+				estados = new LinkedList<String>(Arrays.asList(estadosa));
+			} else if (linea == 1) { // numero total de estados incluido el absorvente(total)
+				String[] totala = lineaCheck.split(",");
+				total = new LinkedList<String>(Arrays.asList(totala));
+			} else if (linea == 2) { // conjunto de estados finales
+				String[] finalesa = lineaCheck.split(",");
+				finales = new LinkedList<String>(Arrays.asList(finalesa));
+			} else { // transiciones de estados
 
-					conjutoEstados.add(lineaCheck);
-					
-					System.out.println(this.accept(lineaCheck));
-				}
+				conjutoEstados.add(lineaCheck);
 
-				linea++;
+				System.out.println(lineaCheck);
 			}
-			br.close();
-		} catch (IOException e) {
-			System.out.println("\n");
-			System.out.println("Asegurese de haber ingresado el nombre de archivo correctamente");
+
+			linea++;
 		}
+		br.close();
+
+		//////////////////////////////////////////////////////////////////////////
+
+		FileInputStream fStream2 = new FileInputStream(args[3]);
+		br = new BufferedReader(new InputStreamReader(fStream2));
+		String str;
+		LinkedList<String> cuerdas = new LinkedList<String>();
+
+		while ((str = br.readLine()) != null) {
+			cuerdas.add(str);
+		}
+
+		for (String cuerda : cuerdas) {
+
+			System.out.println(this.accept(cuerda));
+
+		}
+
 	}
 
 	/*
