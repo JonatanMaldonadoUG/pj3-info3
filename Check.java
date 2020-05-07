@@ -23,13 +23,13 @@ public class Check {
     //     }
     // }
 
-	public Check(String args){
+	public Check(String[] args) {
 		System.out.println("----- Check -----");
-        // for (String value : args) {
-        //     System.out.println(value);
-        // }
+		// for (String value : args) {
+		// System.out.println(value);
+		// }
 		try {
-			FileInputStream fstreamEstados = new FileInputStream(args);//lee archivo con estados
+			FileInputStream fstreamEstados = new FileInputStream(args);// lee archivo con estados
 			br = new BufferedReader(new InputStreamReader(fstreamEstados));
 			String lineaCheck;
 			int linea = 0;
