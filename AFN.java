@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class AFN {
 
@@ -8,6 +9,7 @@ public class AFN {
 	String alfabeto;
 	String terminalInicial;
 	ArrayList<String> reglasProduccion = new ArrayList<String>();
+	File AFN;
 
 	public AFN(String[] args) throws IOException {
 		System.out.println("===== AFN =====");
@@ -46,14 +48,8 @@ public class AFN {
 				this.factorizar(reglaProduccion, true, i);
 
 			} else {
-				System.out.println(documento.get(i));
 				reglasProduccion.add(documento.get(i));
 			}
-		}
-
-		System.out.println("--------------- Reglas de produccion factorizadas ---------------");
-		for (String string : reglasProduccion) {
-			System.out.println(string);
 		}
 
 		this.crearAFN(this.crearArchivo(args));
@@ -169,46 +165,76 @@ public class AFN {
 	private void crearAFN(File file) throws IOException {
 		FileWriter fw = new FileWriter(file);
 		PrintWriter pw = new PrintWriter(fw);
-		String estadosFinales = "";
-		String transicionesLambda = "";
-
-		for (int i = 0; i < this.reglasProduccion.size(); i++) {
-			String[] rp = reglasProduccion.get(i).split("->");
-			if (rp[1].length() == 1 && !this.terminales.contains(Character.toString(rp[1].charAt(0)))) {
-				estadosFinales += i + 1;
-				if (i != this.reglasProduccion.size() - 1)
-					estadosFinales += ",";
-			}
-		}
-
-		for (int i = 0; i <= this.reglasProduccion.size(); i++) {
-			transicionesLambda += i;
-
-			if (i != this.reglasProduccion.size())
-				transicionesLambda += ",";
-		}
+		String estadosFinales = this.estadosFinales();
+		String transicionesLambda = this.transicionesLambda();
 
 		pw.println(this.alfabeto);
 		pw.println(this.reglasProduccion.size() + 1);
 		pw.println(estadosFinales);
 		pw.println(transicionesLambda);
 
-		for (String letra : this.alfabeto.split(",")) {
+		for (int i = 0; i < this.alfabeto.split(",").length; i++) {
 			String fila = "0,";
-			fila = this.transiciones(fila, 0, letra);
-			System.out.print(letra + " ----> ");
-			System.out.println(fila);
+			fila = this.transiciones(fila, 0, this.alfabeto.split(",")[i]);
+			pw.print(this.alfabeto.split(",")[i] + " ----> ");
+			if (i != this.alfabeto.split(",").length - 1) {
+				pw.println(fila.substring(0, fila.length() - 1));
+			} else {
+				pw.print(fila.substring(0, fila.length() - 1));
+			}
 		}
 
-		/*
-		 * for (String letra : this.alfabeto.split(",")) { String fila = "0,"; for (int
-		 * i = 0; i < this.reglasProduccion.size(); i++) { String[] rp =
-		 * this.reglasProduccion.get(i).split("->"); if (rp[1].length() == 2) { if
-		 * (terminales.contains(Character.toString(rp[1].charAt(1)))) { fila += "0,"; }
-		 * } } pw.println(fila); }
-		 */
-
+		this.AFN = file;
 		pw.close();
+	}
+
+	private String estadosFinales() {
+		ArrayList<String> nrp = new ArrayList<String>();
+		for (int i = 0; i < this.reglasProduccion.size(); i++) {
+			String[] rp = this.reglasProduccion.get(i).split("->");
+			if (rp[1].length() == 1 && !this.terminales.contains(Character.toString(rp[1].charAt(0)))) {
+				nrp.add(this.reglasProduccion.get(i) + this.terminalInicial + "@"); // estado final termina en @
+			} else {
+				nrp.add(this.reglasProduccion.get(i));
+			}
+			if (i == this.reglasProduccion.size() - 1) {
+				this.nuevaTerminal(this.terminalInicial + "@");
+				nrp.add(this.terminalInicial + "@->@");
+			}
+		}
+		this.reglasProduccion = nrp;
+
+		System.out.println("---------- Reglas de produccion factorizadas ----------");
+		for (int i = 0; i < nrp.size(); i++) {
+			System.out.println(nrp.get(i) + " <---- " + (i + 1));
+		}
+
+		return Integer.toString(this.reglasProduccion.size());
+	}
+
+	private String transicionesLambda() {
+		System.out.println("=================");
+		String tl = "0,";
+		for (int i = 0; i < this.reglasProduccion.size(); i++) {
+			tl += (i + 1);
+
+			String[] rp = this.reglasProduccion.get(i).split("->");
+			if (rp[1].length() == 1 && this.terminales.contains(rp[1])) {
+				Stream<String> stream = this.reglasProduccion.stream().filter(x -> x.split("->")[0].equals(rp[1]));
+				String[] array = stream.toArray(String[]::new);
+				for (int j = 0; j < this.reglasProduccion.size(); j++) {
+					for (int k = 0; k < array.length; k++) {
+						if (this.reglasProduccion.get(j).equals(array[k])
+								&& !this.reglasProduccion.get(i).equals(array[k])) {
+							tl += ";" + (j + 1);
+						}
+					}
+				}
+			}
+			if (i != (this.reglasProduccion.size() - 1))
+				tl += ",";
+		}
+		return tl;
 	}
 
 	private String transiciones(String fila, int cont, String letra) {
