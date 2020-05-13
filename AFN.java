@@ -10,6 +10,7 @@ public class AFN {
 	String terminalInicial;
 	ArrayList<String> reglasProduccion = new ArrayList<String>();
 	File AFN;
+	HashMap<String, ArrayList<String>> estadosAFD = new HashMap<String, ArrayList<String>>();
 
 	public AFN(String[] args) throws IOException {
 		System.out.println("===== AFN =====");
@@ -52,6 +53,7 @@ public class AFN {
 			}
 		}
 
+		this.estadosFinales();
 		this.crearAFN(this.crearArchivo(args));
 
 		if (args[1].equals("-afd")) {
@@ -59,6 +61,14 @@ public class AFN {
 		}
 	}
 
+	/**
+	 * Separa y crea nuevos estados en las reglas de produccion que tengan mas de
+	 * una letra del alfabeto.
+	 *
+	 * @param rp           regla de produccion del GLD con split de "->".
+	 * @param recursividad true si la rp se dirige hacia otro estado.
+	 * @param id           identificador para crear los nuevos estados.
+	 */
 	private void factorizar(String[] rp, boolean recursividad, int id) {
 
 		String nrp; // nueva regla produccion
@@ -111,12 +121,23 @@ public class AFN {
 		}
 	}
 
+	/**
+	 * Verifica si el estado existe para agregarlo.
+	 *
+	 * @param terminal estado que se desea agregar.
+	 */
 	private void nuevaTerminal(String terminal) {
 		if (!this.terminales.contains(terminal)) {
 			this.terminales.add(terminal);
 		}
 	}
 
+	/**
+	 * Separa el alfabeto del estado al que se dirige.
+	 *
+	 * @param rp contradominio de la regla de produccion.
+	 * @return String[] con el alfabeto separado del estado al que se dirige.
+	 */
 	private String[] reglaProduccion(String rp) {
 		// formato rp: abbX | abbX2
 		Stack<String> stack = new Stack<String>();
@@ -151,6 +172,12 @@ public class AFN {
 		return values.split(", ");
 	}
 
+	/**
+	 * Edita el archivo_salida y sino existe lo crea.
+	 *
+	 * @param args argumentos de la clase main.
+	 * @return File del AFN.
+	 */
 	private File crearArchivo(String[] args) throws IOException {
 		File file = new File(args[2]);
 		if (!file.exists()) {
@@ -162,21 +189,26 @@ public class AFN {
 		return file;
 	}
 
+	/**
+	 * Se coloca toda la data dentro del archivo AFN.
+	 *
+	 * @param file archivo en el que se insertara el AFN.
+	 */
 	private void crearAFN(File file) throws IOException {
+		this.arreglarEstados();
 		FileWriter fw = new FileWriter(file);
 		PrintWriter pw = new PrintWriter(fw);
-		String estadosFinales = this.estadosFinales();
+		String estadosFinales = Integer.toString(this.estadosAFD.size());
 		String transicionesLambda = this.transicionesLambda();
 
 		pw.println(this.alfabeto);
-		pw.println(this.reglasProduccion.size() + 1);
+		pw.println(this.estadosAFD.size() + 1);
 		pw.println(estadosFinales);
 		pw.println(transicionesLambda);
 
 		for (int i = 0; i < this.alfabeto.split(",").length; i++) {
 			String fila = "0,";
 			fila = this.transiciones(fila, 0, this.alfabeto.split(",")[i]);
-			pw.print(this.alfabeto.split(",")[i] + " ----> ");
 			if (i != this.alfabeto.split(",").length - 1) {
 				pw.println(fila.substring(0, fila.length() - 1));
 			} else {
@@ -188,7 +220,11 @@ public class AFN {
 		pw.close();
 	}
 
-	private String estadosFinales() {
+	/**
+	 * Detecta los estados finales del GLD y los apunta a un solo estado final.
+	 *
+	 */
+	private void estadosFinales() {
 		ArrayList<String> nrp = new ArrayList<String>();
 		for (int i = 0; i < this.reglasProduccion.size(); i++) {
 			String[] rp = this.reglasProduccion.get(i).split("->");
@@ -203,65 +239,124 @@ public class AFN {
 			}
 		}
 		this.reglasProduccion = nrp;
-
-		System.out.println("---------- Reglas de produccion factorizadas ----------");
-		for (int i = 0; i < nrp.size(); i++) {
-			System.out.println(nrp.get(i) + " <---- " + (i + 1));
-		}
-
-		return Integer.toString(this.reglasProduccion.size());
 	}
 
-	private String transicionesLambda() {
-		System.out.println("=================");
-		String tl = "0,";
-		for (int i = 0; i < this.reglasProduccion.size(); i++) {
-			tl += (i + 1);
+	/**
+	 * Guarda las reglas de produccion en un HashMap segun su simbolo terminal.
+	 *
+	 */
+	private void arreglarEstados() {
+		System.out.println("----- Estados AFN -----");
 
-			String[] rp = this.reglasProduccion.get(i).split("->");
-			if (rp[1].length() == 1 && this.terminales.contains(rp[1])) {
-				Stream<String> stream = this.reglasProduccion.stream().filter(x -> x.split("->")[0].equals(rp[1]));
-				String[] array = stream.toArray(String[]::new);
-				for (int j = 0; j < this.reglasProduccion.size(); j++) {
-					for (int k = 0; k < array.length; k++) {
-						if (this.reglasProduccion.get(j).equals(array[k])
-								&& !this.reglasProduccion.get(i).equals(array[k])) {
+		// guarda las reglas de produccion en su respectiva terminal
+		for (String string : this.terminales) {
+			ArrayList<String> array = new ArrayList<String>();
+			Stream<String> stream = this.reglasProduccion.stream().filter(x -> x.split("->")[0].equals(string));
+			String[] rrpp = stream.toArray(String[]::new);
+			for (String rp : rrpp) {
+				String[] nrp = rp.split("->");
+				array.add(nrp[1]);
+			}
+			this.estadosAFD.put(string, array);
+		}
+
+		// elimina los estados que se encuentran vacios
+		for (Map.Entry<String, ArrayList<String>> entry : this.estadosAFD.entrySet()) {
+			if (entry.getValue().size() == 0) {
+				this.estadosAFD.remove(entry.getKey());
+				this.terminales.remove(this.terminales.indexOf(entry.getKey()));
+			}
+		}
+
+		int cont = 0;
+		for (String string : terminales) {
+			System.out.println(
+					string + " = " + Arrays.toString(this.estadosAFD.get(string).toArray()) + " <----- " + ++cont);
+		}
+	}
+
+	/**
+	 * Recorre las terminales para detectar si alguna hace transicion con lambda.
+	 *
+	 */
+	private String transicionesLambda() {
+		String tl = "0,";
+
+		for (int i = 0; i < this.terminales.size(); i++) {
+			tl += (i + 1);
+			String terminal = this.terminales.get(i);
+			ArrayList<String> opciones = this.estadosAFD.get(terminal);
+			for (String opcion : opciones) {
+				if (opcion.length() == 1 && this.terminales.contains(opcion)) {
+					for (int j = 0; j < this.terminales.size(); j++) {
+						if (this.terminales.get(j).equals(opcion))
 							tl += ";" + (j + 1);
-						}
 					}
 				}
 			}
-			if (i != (this.reglasProduccion.size() - 1))
+			if (i != (this.terminales.size() - 1))
 				tl += ",";
 		}
 		return tl;
 	}
 
+	/**
+	 * Funcion recurciva para obtener las transiciones de una letra del GLD.
+	 *
+	 * @param fila  String de las transiciones segun la letra.
+	 * @param cont  contador.
+	 * @param letra letra de la que se obtendra las transiciones.
+	 * @return String de las transiciones que hace la letra separadas por ",".
+	 */
 	private String transiciones(String fila, int cont, String letra) {
-		if (cont >= (this.reglasProduccion.size())) {
+		if (cont >= (this.terminales.size())) {
 			return fila;
 		}
 
-		String[] rp = this.reglasProduccion.get(cont).split("->"); // formato: ["S", "bX"]
-		String[] nrp = {}; // formato: ["b", "X"]
-		String srp = ""; // formato: "b"
+		String estado = this.terminales.get(cont); // formato: W | X | Y
+		ArrayList<String> opciones = this.estadosAFD.get(estado); // formato: ["bX", "aY", "W"]
+		String str = "";
 
-		if (rp[1].length() > 1) {
-			nrp = this.reglaProduccion(rp[1]);
-		} else {
-			srp = Character.toString(rp[1].charAt(0));
+		for (int i = 0; i < opciones.size(); i++) {
+			String opcion = opciones.get(i); // formato: "bX" | "X"
+			String[] nrp = {}; // formato: ["b", "X"]
+			String srp = ""; // formato: "X"
+			String index;
+
+			if (opcion.length() > 1) {
+				nrp = this.reglaProduccion(opcion);
+				index = Integer.toString(this.terminales.indexOf(nrp[1]) + 1);
+			} else {
+				srp = Character.toString(opcion.charAt(0));
+				index = Integer.toString(this.terminales.indexOf(srp) + 1);
+			}
+
+			if ((nrp.length != 0 && nrp[0].equals(letra)) || (srp.length() != 0 && srp.equals(letra))) {
+				if (str.length() != 0) {
+					str += ";" + index;
+				} else {
+					str += index;
+				}
+			}
 		}
 
-		if ((nrp.length != 0 && nrp[0].equals(letra)) || (srp.length() != 0 && srp.equals(letra))) {
-			fila = this.transiciones(this.concatenarFila(fila, cont + 1), cont + 1, letra);
+		if (str.length() != 0) {
+			fila = this.transiciones(this.concatenarFila(fila, str), cont + 1, letra);
 		} else {
-			fila = this.transiciones(this.concatenarFila(fila, 0), cont + 1, letra);
+			fila = this.transiciones(this.concatenarFila(fila, "0"), cont + 1, letra);
 		}
 
 		return fila;
 	}
 
-	private String concatenarFila(String fila, int estado) {
+	/**
+	 * Concatena el estado a la fila.
+	 *
+	 * @param fila   String de las transiciones segun la letra.
+	 * @param estado estado que se debe concatenar en la matriz.
+	 * @return String de las transiciones que hace la letra separadas por ",".
+	 */
+	private String concatenarFila(String fila, String estado) {
 		return fila += estado + ",";
 	}
 
