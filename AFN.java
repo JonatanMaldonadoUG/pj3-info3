@@ -57,7 +57,7 @@ public class AFN {
 		this.crearAFN(this.crearArchivo(args));
 
 		if (args[1].equals("-afd")) {
-			AFD afd = new AFD(args);
+			AFD afd = new AFD(args, this.AFN);
 		}
 	}
 
