@@ -1,10 +1,16 @@
-W,X,Y,Z
+W,X,Y,Z,V
 a,b,c,d
 W
 W->abX
+W->X
 X->bX
 X->b
 X->cY
+X->Y
+Y->Z
 Y->cY
 Y->c
 Y->d
+Z->a
+Z->V
+V->b
